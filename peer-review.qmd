@@ -1,0 +1,563 @@
+---
+title: "Making America Weak: Consequences of Underinvestment in Renewable Energy"
+author: "Sarah Mathey"
+date: last-modified
+date-format: long
+output-dir: docs
+format:
+    html:
+        self-contained: true
+        code-fold: true
+        toc: true
+        toc-depth: 4
+        toc-location: left
+        df-print: paged
+        include-in-header:
+            - text: |
+                <style>
+                    a:link { color: #265436; }
+                </style>
+knitr:
+    opts_chunk:
+        out-width: "85%"
+        fig-align: "center"
+execute:
+    cache: false
+    warning: false
+    message: false
+    echo: false
+---
+![In the News](fp_images/all_headlines.png)
+
+# Introduction
+```{r}
+# load libraries
+library(tidyverse)
+library(readxl)
+library(janitor)
+library(ggtext)
+library(sf)
+library(tigris)
+library(rnaturalearth)
+library(rnaturalearthdata)
+library(patchwork)
+library(ggtext)
+library(plotly)
+# load data 
+#------------------------------------------------------------------------------#
+# IRENA  ----
+#------------------------------------------------------------------------------#
+
+irena <- read_excel(
+    'data/IRENA_Statistics_Extract_2025H2.xlsx',
+    sheet = 'Country'
+) %>%
+    janitor::clean_names()
+
+#------------------------------------------------------------------------------#
+# Solar  ----
+#------------------------------------------------------------------------------#
+
+solar_power_20mw <- read_xlsx('~/Desktop/dataviz/final_project/data/Global-Solar-Power-Tracker-February-2025.xlsx', sheet = '20 MW+') %>%
+    janitor::clean_names() %>%
+    st_as_sf(coords = c('longitude','latitude'), crs = 4326)
+
+# Create status_group variable 
+solar_power_20mw <- solar_power_20mw %>%
+    mutate(status_group = case_when(
+        status %in% c('shelved','mothballed','retired','cancelled','cancelled - inferred 4 y','shelved - inferred 2 y') ~ 'Excluded',
+        status %in% c('operating') ~ 'Operating',
+        status %in% c('announced') ~ 'Announced',
+        status %in% c('construction','pre-construction') ~ 'In construction',
+        TRUE ~ status ))
+
+#------------------------------------------------------------------------------#
+# World Bank Indicators  ----
+#------------------------------------------------------------------------------#
+# country_stats <- WDI(country = "all",
+#           indicator = c(GDP = "NY.GDP.MKTP.CD",
+#                         pop = "SP.POP.TOTL"),
+#           start = 2023, end = 2023,
+#           extra = TRUE)
+
+#------------------------------------------------------------------------------#
+# IEA energy investment  ----
+#------------------------------------------------------------------------------#
+
+# IEA (2025), Energy investment across regions and sectors, 2015 and 2025, IEA, Paris https://www.iea.org/data-and-statistics/charts/energy-investment-across-regions-and-sectors-2015-and-2025, Licence: CC BY 4.0
+
+# data in billion USD (2024, MER)
+# 2025 values estimated
+
+
+iea <- read_csv('data/iea_2025_inv_by_region.csv')
+
+colors <- list(
+    celtic_green = "#008348"
+    , dark_green = "#265436"
+    , mint_green = "#BADDC9"
+    , middle_green = "#799A84"
+    , golden = "#EDAB18"
+    , text_gray = "#5D6770"
+    , navy = "#003D52"
+)
+
+
+```
+
+
+After passing the largest climate bill in United States history through the Inflation Reduction Act of 2022, the United States has decided to pull out of the global race to be a green tech leader, and cede that influential position to foreign powers. 
+
+Recent [budget legislation](https://www.nytimes.com/2025/07/01/climate/china-climate-united-states.html?searchResultPosition=4.) and [abrupt cancellations of federal funding](https://www.npr.org/2025/08/31/nx-s1-5522943/trump-offshore-wind-energy-ports) have damaged the US renewable energy sector. 
+
+Beyond the impact these policy changes will have on efforts to combat climate change, **these moves are a direct threat to US global dominance.**
+
+Despite decades of fighting to ensure energy independence from the Middle East, we are facing a future where both the United States and it's allies will be dependent on China for technology to support the transition to renewable energy. 
+
+In an era of rapidly increasing energy demand, particularly around AI development, our lack of competitiveness in energy innovation and manufacturing is a national security risk. 
+
+This project was inspired by The New York Times *Power Moves* article: [*There's a Race to Power the Future. China is Pulling Away.*](https://www.nytimes.com/interactive/2025/06/30/climate/china-clean-energy-power.html). Throughout this report, direct quotes from this article will be indicated with <span style="color:#799A84; font-style:italic;">green text.</span> 
+
+```{r}
+#| label: ranking 
+#| fig-width: 30
+#| fig-height: 20
+
+## get world sf from rnaturalearth
+world_sf <- ne_countries(
+  #scale = "medium", 
+  returnclass = "sf"
+) %>%
+    mutate( iso3_code  = str_trim(str_to_upper(adm0_a3_us)))
+
+world_sf_data <- world_sf %>%
+    as.data.frame() %>%
+    select(iso3_code, name_en, pop_est, pop_year, gdp_md, gdp_year, economy, income_grp, continent, subregion, region_un) %>%
+    unique()
+
+## World map of % renewable energy generation 2023 
+
+irena_bc <- irena %>%
+    filter(year == 2023) %>%
+
+    group_by(country,iso3_code, region, re_or_non_re) %>%
+    summarise(ttl_energy_generation_by_re_non_re = sum(electricity_generation_g_wh, na.rm = TRUE))  %>% 
+
+    group_by(country) %>%
+    mutate(ttl_energy_generation_by_country = sum(ttl_energy_generation_by_re_non_re, na.rm = TRUE)) %>% 
+
+    ungroup() %>%
+    mutate(pct_renewable = ttl_energy_generation_by_re_non_re/ttl_energy_generation_by_country,
+           is_usa = ifelse(
+            iso3_code=='USA',TRUE, FALSE
+           ),
+           iso3_code = str_trim(str_to_upper(iso3_code))) %>%
+        
+    filter(re_or_non_re=='Total Renewable', 
+           !iso3_code %in% c('XOC','XMX','XME','XLA','XDX','XCS','XAS','XAF','XAA')) %>%
+    arrange(desc(pct_renewable)) 
+
+world_sf <- world_sf %>%
+    merge(
+        irena_bc,
+        by = 'iso3_code',
+        all.x = TRUE
+    ) %>%
+    mutate(label_text = str_c(
+        name_en, 
+        ": ", 
+        scales::percent(
+            pct_renewable, 
+            accuracy =.1
+            )
+        ))
+
+irena_bc <- irena_bc %>%
+    merge(
+        world_sf_data,
+        by = 'iso3_code',
+        all.x = TRUE
+    )
+
+
+
+## bar chart showing how behind US is 
+
+irena_bc_um_hi <- irena_bc %>%
+    select(name_en,pct_renewable,income_grp) %>%
+    filter(income_grp %in% c('1. High income: OECD','2. High income: nonOECD','3. Upper middle income')) %>%
+    filter(!is.na(pct_renewable)) %>%
+    mutate(rank = rank(-pct_renewable),
+            is_usa = ifelse(name_en=='United States of America', TRUE, FALSE),
+            label_text = str_c(
+                name_en,
+                ": ",
+                scales::percent(
+                    pct_renewable, 
+                    accuracy =.1
+            )
+            )) 
+
+
+
+rankplot <- irena_bc_um_hi %>%
+    ggplot(aes(x = pct_renewable, 
+               y = forcats::fct_reorder(name_en, pct_renewable), 
+               fill = is_usa,
+               text = label_text)
+               ) +
+    geom_col() +
+    scale_fill_manual(values = c('black',colors$golden)) +
+    scale_x_continuous(label = scales::percent_format())+
+    labs(y = "",
+         x = "% Energy Generation from Renewable Energy",
+         title = "The US ranks <span style='color:#EDAA1C;'>68th</span> among high and upper middle income countries",
+         subtitle = "in terms of energy generation from renewable sources, 2023",
+         caption = "source: IRENA")+
+    theme_minimal() +
+    theme(
+        plot.title = element_text(face = "bold", size = 8),
+        plot.subtitle = element_text(face = "italic", size = 6),
+        plot.caption = element_text(face = "italic", size = 6),
+        legend.position = 'none',
+        panel.grid.major = element_blank(),
+        axis.text.y = element_text(size =4)
+    )
+
+ggplotly(rankplot, tooltip = "label_text", hovermode='x')
+```
+
+*Use the map below to explore more countries.*
+```{r}
+#| label: world-map 
+
+wm <- ggplot(data = world_sf, aes(text = label_text)) +
+  geom_sf(aes(fill = pct_renewable), color = "white", linewidth = 0.1) +
+  scale_fill_gradient(name = "% Energy from Renewable Sources", 
+                      low = "black", 
+                      high = colors$golden,
+                      guide = guide_colorbar(
+                            barwidth = unit(0.5, "cm"), 
+                            barheight = unit(5, "cm") 
+                            )
+                    ) + 
+  theme_void() +
+  labs(
+    title = "% Energy Generation from Renewable Sources",
+    subtitle = "2023"
+  )+
+  theme (legend.position = "bottom")
+
+ggplotly(wm, 
+         tooltip = "label_text",
+         width = 800, 
+         height = 500)
+```
+
+## Meanwhile, in China...
+
+China, in comparison, has made deliberate investments in not only their, but the world's renewable energy future. Their consistent and substantial investments in renewable energy research and manufacturing have made them the global leader in this space with countries across the globe looking to them for the technologies needed to transition to clean energy.   
+
+<span style="color:#799A84;font-style:italic;">China’s goal of dominating clean energy technology wasn’t about climate change. It was born in a moment of strategic self-awareness two decades ago, when the country’s leaders looked to the future and understood that controlling energy production was vital to national security.</span>
+
+[**Click here to compare the US to other countries**](https://sarah-mathey.shinyapps.io/shiny_app/)
+
+
+### China has made deep investments, especially in solar 
+
+<span style="color:#799A84;font-style:italic;">Last June, the Urumqi solar farm, the largest in the world, came online in the Xinjiang Autonomous Region in China. It is capable of generating more power than some small countries need to run their entire economies.</span>
+
+<span style="color:#799A84;font-style:italic;">It’s hardly an anomaly. The other 10 largest solar facilities in the world are also in China, and even bigger ones are planned.</span>
+
+```{r results = 'hide'}
+#| label: solar-development-comp
+
+# Load US States map
+state <- tigris::states() %>%
+    # Filter out territories
+    filter(as.numeric(STATEFP) < 60)
+
+# Set CRS 
+state <- st_transform(state, 4326)
+
+# Consolidate states 
+state <- state %>% shift_geometry()
+
+# Load China map 
+china_regions <- ne_states(country = "China", returnclass = "sf")
+
+# Set CRS 
+china_regions <- st_transform(china_regions, 4326)
+
+```
+```{r}
+#| fig-width: 20
+#| fig-height: 18
+
+us_20 <- solar_power_20mw %>%
+    filter(country_area %in% c('United States'),
+          is.na(retired_year),
+          status_group == 'Operating') %>%
+          shift_geometry()
+
+chn_20 <- solar_power_20mw %>%
+    filter(country_area %in% c('China'),
+          is.na(retired_year),
+          status_group == 'Operating')
+
+# Create US plot
+us <- ggplot() +
+    geom_sf(data = state, 
+            fill ="black", 
+            color = "darkgray") +
+    geom_sf(data = us_20, 
+            alpha =.7,
+            color = "#EDAB18") +
+    theme_void()
+
+# Create China plot
+chn <- ggplot() +
+    geom_sf(data = china_regions, 
+            fill ="black", 
+            color = "darkgray") +
+    geom_sf(data = chn_20, 
+            alpha =.7,
+            color = "#EDAB18") +
+    theme_void()
+
+
+# Define comparison metrics
+ttl_capacity_chn <- sum(chn_20$capacity_mw, na.rm = TRUE) 
+ttl_capacity_us <- sum(us_20$capacity_mw, na.rm = TRUE) 
+
+n_chn <- nrow(chn_20)
+n_us <- nrow(us_20)
+
+ttl_cap_comp <- round(ttl_capacity_chn/ttl_capacity_us)
+n_comp <- round(n_chn/n_us)
+
+
+# Write out subtitle
+subtitle_ <- paste0(
+  "China has <b>",
+  n_comp,
+  "X </b>", 
+  "the number of 20+ MW solar plants as the US, producing <b>",
+  ttl_cap_comp,
+  "X</b>", 
+  " the amount of energy"
+)
+
+# Combine US and China Plots 
+(us / chn) + 
+    # Annotate combined plots 
+    plot_annotation(
+    title = 'Operating 20+ MW solar plants in the US and China',
+    subtitle =  paste0(
+      subtitle_,
+      "<br><span style='color:gray;size:9;'>*Note: A 20 MW+ solar plant is a utility-scale plant.*</br></span>"),
+    caption = 'Source: Global Solar Power Tracker, Global Energy Monitor and TransitionZero, February 2025 release',
+    theme = theme(
+        plot.title = element_text(face = "bold", size = 22),
+        plot.subtitle = element_markdown(size = 16, color = "#5D6770",  lineheight = 0.9),
+        plot.caption = element_text(size = 12,  color = "gray")
+    ))
+```
+
+China has magnitudes more operating 20+ MW solar plants and many more planned or in construction. While the United States has many projects that are in construction or that have been announced, we still do not come close the the production seen in China. 
+
+Moreover, recent Federal policy changes are likely to disrupt these investments and lead to an ever widening capability gap between the United States and China with respect to domestic solar power production.
+
+```{r}
+#| label: us-gif
+knitr::include_graphics("us_status_animated.gif")
+```
+```{r}
+#| label: chn-gif
+knitr::include_graphics("chn_status_animated.gif")
+```
+
+## Pulling back on federal investments will further erode our global standing 
+
+China began investing in their renewable energy innovation decades ago, while the U.S. just began in honest in 2022. While the Inflation Reduction Act should be celebrated, it could never have hoped to close the competition gap with China overnight. The policy reversals we are seeing now, as well as the impact that defunding schools and shutting down immigration will have on our ability to innovate, will not just set us back for the next four years, but for many years, if not decades, beyond that. 
+
+<span style="color:#799A84;font-style:italic;">Of course, the United States could reverse course. A future administration could aggressively swing once again to clean energy research and investment.</span>
+
+<span style="color:#799A84;font-style:italic;">But it will have lost precious time. Investments made years ago by China are paying off now, and Beijing is continuing to pour money into developing its domestic energy industry and exporting those goods to the world.</span>
+
+```{r}
+
+iea_pivot <- iea %>%
+    pivot_longer(!c(region,year),names_to='industry',values_to = "usd_billions") %>%
+    mutate(year = as.factor(year),
+            to_highlight = ifelse(region %in% c('China','United States'), TRUE, FALSE))
+
+chn_25 <- iea_pivot %>%
+    filter(industry=='renewable_power', year==2025, region=='China') %>%
+    pull(usd_billions)
+
+us_25 <- iea_pivot %>%
+    filter(industry=='renewable_power', year==2025, region=='United States') %>%
+    pull(usd_billions)
+
+pct_diff <- scales::percent((chn_25-us_25)/chn_25, accuracy = .1)
+
+# Write out subtitle
+title_ <- paste0(
+  "China invested ",
+  pct_diff, 
+  " more in renewable energy than the US in 2025"
+)
+
+iea_pivot %>%
+    filter(industry=='renewable_power', year==2025)%>%
+    ggplot(aes(y=forcats::fct_reorder(region,usd_billions), x=usd_billions, fill = to_highlight)) +
+    geom_bar(position="dodge", stat="identity") +
+    scale_fill_manual(values = c('black',colors$golden)) +
+    labs(y="",
+         x = "USD (Billions)",
+         title = title_,
+         caption = "Source: International Energy Agency") + 
+    theme_minimal() +
+    theme(
+        plot.title = element_text(face = "bold", size = 16),
+        plot.subtitle = element_markdown(size = 13, color = "#5D6770",  lineheight = 0.9),
+        plot.caption = element_text(size = 9,  color = "gray"),
+        legend.position = "none"
+    )
+```
+
+```{r}
+# Wrangle data for viz
+renew_slope_chart <- iea_pivot %>%
+    # filter boundary crossing regions
+    filter(region %in% c('United States','China'), industry=='renewable_power') %>%
+    # select only necessary columns
+    select(region, year, usd_billions) %>%
+    # group by region for calculation
+    group_by(region) %>%
+    # calculate YOY % chg 
+    mutate( pct_chg = scales::percent((usd_billions-lag(usd_billions))/lag(usd_billions),accuracy=.1))
+```
+
+```{r}
+#| fig-width: 20
+#| fig-height: 18
+# Create slope viz
+
+# Create label for lines 
+g_label_l <- renew_slope_chart %>%
+  filter(year == '2025', region %in% c('United States','China'))
+
+# Create annotations for viz
+# pull % chg for china
+china_annotation <- renew_slope_chart %>% 
+    filter(region == 'China' & year =='2025') %>%
+    select(pct_chg) %>%
+    pull()
+
+# Write out annotation
+china_label_text <- paste0(
+  "China increased investment in renewable energy by ",
+  "<b>", china_annotation, "</b>",
+  " between 2015 and 2025"
+)
+
+# Wrap label
+china_wrapped_label <- str_wrap(china_label_text, width = 25)
+
+# Substitute different line break characters to work with richtext 
+china_wrapped_label <- gsub("\n", "<br>", china_wrapped_label)
+
+# pull % chg for US
+us_annotation <- renew_slope_chart %>% 
+    filter(region == 'United States' & year =='2025') %>%
+    select(pct_chg) %>%
+    pull()
+
+# Write out annotation
+us_label_text <- paste0(
+  "While the United States increased investment in renewable energy by ",
+  "<b>", us_annotation, "</b>",
+  " between 2015 and 2025"
+)
+
+# Wrap label
+us_wrapped_label <- str_wrap(us_label_text, width = 25)
+
+# Substitute different line break characters to work with richtext
+us_wrapped_label <- gsub("\n", "<br>", us_wrapped_label)
+
+```
+```{r}
+# Viz 
+renew_slope_chart %>%
+    filter(region %in% c('United States','China')) %>%
+    ggplot( aes(as.numeric(year), usd_billions, color = region)) +
+        geom_line(linewidth = 3) +
+        geom_label(aes(label = usd_billions), fill = "white", label.size = 0) + 
+        geom_text(data = g_label_l, aes(label = region, x = as.numeric(year) - 0.005), hjust = 1, vjust =-.9) +
+        annotate(
+            geom = "richtext",
+            x = 1.9, y = 250,
+            label = china_wrapped_label,
+            size = 3,
+            color = "#5D6770",
+            fill = NA,        
+            label.color = NA  
+        ) +
+        annotate(geom = "richtext", 
+                    x = 1.9,
+                    y = 45,
+                    label = us_wrapped_label, size =3, color ="#5D6770",
+                    fill = NA,       
+                    label.color = NA) +
+        labs(title="The investment gap between the US and China is widening", 
+            subtitle="Investment in renewable energy (USD Billions)", 
+            caption="Source: International Energy Agency",
+            x = "Year",
+            y = ""
+            ) +
+        scale_x_continuous(#limits = c(2015, 2025),  
+                             breaks = c(1, 2),
+                             labels = c(2015, 2025)
+                             ) + 
+        scale_y_continuous(limits = c(0, 350)
+         ) + 
+        scale_color_manual(values = c(
+            "China" = colors$golden,
+            "United States" = "black")
+            )+
+        theme_minimal() +
+        theme(legend.position = "none",
+                panel.grid.major.y = element_blank(), 
+                panel.grid.minor = element_blank(), 
+                axis.line.y = element_blank(), 
+                axis.ticks.y = element_blank(),
+                axis.text.y = element_blank(),
+                axis.text.x = element_text(size=16, face ="bold"),
+                plot.title = element_text(face = "bold", size = 16),
+                plot.subtitle = element_markdown(size = 13, color = "#5D6770",  lineheight = 0.9),
+                plot.caption = element_text(size = 9,  color = "gray"))
+
+
+```
+
+## Going forward
+
+Not just about industry dominance or climate change, though those are valid concerns, but geopolitics.  
+
+<span style="color:#799A84;font-style:italic;">Around the world, Beijing is using its clean energy clout to build or expand political and economic relationships.</span>
+
+<span style="color:#799A84;font-style:italic;">Both the United States and China not only see energy independence as essential at home, but understand that supplying other countries with energy is a vital way to project power...</span>
+
+<span style="color:#799A84;font-style:italic;">America gets “geopolitical leverage from oil and gas,” said Varun Sivaram, a fellow at the Council on Foreign Relations who helped write clean energy policy for the Biden administration. “The energy transition is actually very bad for the United States,” he said, “because we cede geopolitical and economic ground to a rival in China.”</span>
+
+<span style="color:#799A84;font-style:italic;">The United States still has many customers for its enormous stores of oil, gas and coal. Roughly 80 percent of global energy needs are still met by fossil fuels.</span>
+
+<span style="color:#799A84;font-style:italic;">But that proportion is widely expected to decline. The International Energy Agency forecasts that by midcentury, oil, gas and coal will fall below 60 percent of global energy needs.</span>
+
+<span style="color:#799A84;font-style:italic;">And China is positioned to pick up the extra business.</span>
+
+<span style="color:#799A84;font-style:italic;">“When the federal government of the United States decides to go out of the race, it doesn’t stop the race,” said Rafael Dubeux, a senior official in Brazil’s Finance Ministry. “Other countries keep moving.”</span>
+
