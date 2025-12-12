@@ -5,13 +5,14 @@ date: last-modified
 date-format: long
 output-dir: docs
 format:
-    html:
+    revealjs:
+        theme: simple 
+        smaller: true     
+        slide-number: c/t  
+        incremental: true  
         self-contained: true
-        code-fold: true
-        toc: true
-        toc-depth: 4
-        toc-location: left
-        df-print: paged
+        df-print: default  
+        footer: "2025 Sarah Mathey"
         include-in-header:
             - text: |
                 <style>
@@ -20,7 +21,6 @@ format:
         link-external-newwindow: true
 knitr:
     opts_chunk:
-        out-width: "85%"
         fig-align: "center"
 execute:
     cache: false
@@ -28,9 +28,15 @@ execute:
     message: false
     echo: false
 ---
+
+## Making America Weak: Consequences of Underinvestment in Renewable Energy {.smaller}
+
 ![In the News](fp_images/all_headlines.png)
 
-# Introduction
+This project was inspired by The New York Times *Power Moves* article: [*There's a Race to Power the Future. China is Pulling Away.*](https://www.nytimes.com/interactive/2025/06/30/climate/china-clean-energy-power.html)
+
+## The United States Lags Behind it's Peers
+
 ```{r}
 # load libraries
 library(tidyverse)
@@ -97,21 +103,6 @@ colors <- list(
 )
 
 ```
-
-
-After passing the largest climate bill in United States history through the Inflation Reduction Act of 2022, the United States has decided to pull out of the global race to be a green tech leader, and cede that influential position to foreign powers. 
-
-Recent [budget legislation](https://www.nytimes.com/2025/07/01/climate/china-climate-united-states.html?searchResultPosition=4.) and [abrupt cancellations of federal funding](https://www.npr.org/2025/08/31/nx-s1-5522943/trump-offshore-wind-energy-ports) have damaged the US renewable energy sector. 
-
-Beyond the impact these policy changes will have on efforts to combat climate change, **these moves are a direct threat to US global dominance.**
-
-Despite decades of fighting to ensure energy independence from the Middle East, we are facing a future where both the United States and it's allies will be dependent on China for technology to support the transition to renewable energy. 
-
-In an era of rapidly increasing energy demand, particularly around AI development, our lack of competitiveness in energy innovation and manufacturing is a national security risk. 
-
-This project was inspired by The New York Times *Power Moves* article: [*There's a Race to Power the Future. China is Pulling Away.*](https://www.nytimes.com/interactive/2025/06/30/climate/china-clean-energy-power.html) Throughout this report, direct quotes from this article will be indicated with <span style="color:#799A84; font-style:italic;">green text.</span> 
-
-It relies on energy investment data from the International Energy Agency (IEA), information on renewable energy electricity generation from the International Renewable Energy Agency (IRENA), and the Global Solar Tracker from the Global Energy Monitor.
 
 ```{r}
 #| label: ranking 
@@ -234,17 +225,15 @@ ggplotly(rankplot, tooltip = "label_text") %>%
         showarrow = FALSE,
         font = list(size = 12)
         )
-    )
+    ),
+        autosize = TRUE, 
+        width = NULL
 )
 
 ```
 
 
-
-<span style = 'font-size:16;font-weight:bold;'>Use the map below to explore more countries.</span>
-
-
-
+## Global Positioning {.scrollable}
 ```{r}
 #| label: world-map 
 
@@ -322,8 +311,6 @@ g
 
 ```{r}
 #| label: boxplo
-#| fig-height: 1.5
-#| out-width: "100%"
 
 bp <- irena_bc_um_hi %>%
     ggplot(aes(x = " ", 
@@ -364,22 +351,11 @@ ggplotly(bp, tooltip = "text") %>% layout(
 ```
 
 
-## Meanwhile, in China...
+## China has made deep investments, especially in solar {.smaller .scrollable}
 
-China, in comparison, has made deliberate investments in not only their, but the world's renewable energy future. Their consistent and substantial investments in renewable energy research and manufacturing have made them the global leader in this space with countries across the globe looking to them for the technologies needed to transition to clean energy.   
+::: {.panel-tabset}
 
-<span style="color:#799A84;font-style:italic;">China’s goal of dominating clean energy technology wasn’t about climate change. It was born in a moment of strategic self-awareness two decades ago, when the country’s leaders looked to the future and understood that controlling energy production was vital to national security.</span>
-
-<span style = 'size:16;'>[**Click here to compare the US to other countries**](https://sarah-mathey.shinyapps.io/shiny_app/)</span>
-
-
-### China has made deep investments, especially in solar 
-
-<span style="color:#799A84;font-style:italic;">Last June, the Urumqi solar farm, the largest in the world, came online in the Xinjiang Autonomous Region in China. It is capable of generating more power than some small countries need to run their entire economies.</span>
-
-<span style="color:#799A84;font-style:italic;">It’s hardly an anomaly. The other 10 largest solar facilities in the world are also in China, and even bigger ones are planned.</span>
-
-
+### Operating Plants
 ```{r results = 'hide'}
 #| label: solar-development-comp
 
@@ -480,9 +456,8 @@ subtitle_ <- paste0(
     ))
 ```
 
-China has magnitudes more operating 20+ MW solar plants and many more planned or in construction. While the United States has many projects that are in construction or that have been announced, we still do not come close the the production seen in China. 
+### US Investments
 
-Moreover, recent Federal policy changes are likely to disrupt these investments and lead to an ever widening capability gap between the United States and China with respect to domestic solar power production.
 ```{r eval = FALSE}
 #| label: create-datasets
 # Create datasets 
@@ -591,20 +566,17 @@ anim_save("chn_status_animated.gif")
 #| dpi: 150
 knitr::include_graphics("us_status_animated.gif")
 ```
+### Chinese Investments
 ```{r}
 #| label: chn-gif
 #| dpi: 150
 knitr::include_graphics("chn_status_animated.gif")
 ```
+:::
 
 ## Pulling back on federal investments will further erode our global standing 
-
-China began investing in their renewable energy innovation decades ago, while the U.S. just began in honest in 2022. While the Inflation Reduction Act should be celebrated, it could never have hoped to close the competition gap with China overnight. The policy reversals we are seeing now, as well as the impact that defunding schools and shutting down immigration will have on our ability to innovate, will not just set us back for the next four years, but for many years, if not decades, beyond that. 
-
-<span style="color:#799A84;font-style:italic;">Of course, the United States could reverse course. A future administration could aggressively swing once again to clean energy research and investment.</span>
-
-<span style="color:#799A84;font-style:italic;">But it will have lost precious time. Investments made years ago by China are paying off now, and Beijing is continuing to pour money into developing its domestic energy industry and exporting those goods to the world.</span>
-
+::: {.panel-tabset}
+### 2025
 ```{r}
 iea_pivot <- iea %>%
     pivot_longer(!c(region,year),names_to='industry',values_to = "usd_billions") %>%
@@ -645,7 +617,7 @@ iea_pivot %>%
         legend.position = "none"
     )
 ```
-
+### Widening Gap
 ```{r}
 # Wrangle data for viz
 renew_slope_chart <- iea_pivot %>%
@@ -761,31 +733,21 @@ renew_slope_chart %>%
 
 
 ```
-
-## Going forward
-
-The concerns here are not just about industry dominance or even climate change, though those are valid concerns, but geopolitics. Continued underinvestment in the United States' innovation capacity, through not only the current renewable techonology policy changes but also the erosion of funding for basic science and public education, will result in a world where the United States has less influence both economically and in terms of soft power. This is a world in which all Americans are fundamentally less secure. 
-
-As a country, we understood that our success in World War II depended on having the best technology. In more recent history, we understood that dependence on foreign countries for energy supplies was a national security risk.  
+:::
+## Going forward {.smaller}
 
 In order to keep America great, we need to be looking forward, not back. This means investing in basic science and new techonological development, not relying on our current dominance in fossil fuels. 
 
+Further investigation into China's lead in developing and manufacturing renewable energy technology and the economic and political benefits accrued by exporting these tools should be conducted
 
-<span style="color:#799A84;font-style:italic;">Around the world, Beijing is using its clean energy clout to build or expand political and economic relationships.</span>
+## Additional Resources
 
-<span style="color:#799A84;font-style:italic;">Both the United States and China not only see energy independence as essential at home, but understand that supplying other countries with energy is a vital way to project power...</span>
+<span style = 'size:16;'>[**Click here to compare the US to other countries**](https://sarah-mathey.shinyapps.io/shiny_app/)</span>
 
-<span style="color:#799A84;font-style:italic;">America gets “geopolitical leverage from oil and gas,” said Varun Sivaram, a fellow at the Council on Foreign Relations who helped write clean energy policy for the Biden administration. “The energy transition is actually very bad for the United States,” he said, “because we cede geopolitical and economic ground to a rival in China.”</span>
+<span style = 'size:16;'>[**Use this link to explore this work on your own**](https://sarahmathey.github.io//data_viz//peer-review)</span>
 
-<span style="color:#799A84;font-style:italic;">The United States still has many customers for its enormous stores of oil, gas and coal. Roughly 80 percent of global energy needs are still met by fossil fuels.</span>
 
-<span style="color:#799A84;font-style:italic;">But that proportion is widely expected to decline. The International Energy Agency forecasts that by midcentury, oil, gas and coal will fall below 60 percent of global energy needs.</span>
-
-<span style="color:#799A84;font-style:italic;">And China is positioned to pick up the extra business.</span>
-
-<span style="color:#799A84;font-style:italic;">“When the federal government of the United States decides to go out of the race, it doesn’t stop the race,” said Rafael Dubeux, a senior official in Brazil’s Finance Ministry. “Other countries keep moving.”</span>
-
-## Data Sources
+## Data Sources {.smaller}
 
 * IEA (2025), Energy investment across regions and sectors, 2015 and 2025, IEA, Paris https://www.iea.org/data-and-statistics/charts/energy-investment-across-regions-and-sectors-2015-and-2025, Licence: CC BY 4.0
 
