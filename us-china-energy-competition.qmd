@@ -12,7 +12,6 @@ format:
         incremental: true  
         self-contained: true
         df-print: default  
-        footer: "2025 Sarah Mathey"
         include-in-header:
             - text: |
                 <style>
@@ -35,7 +34,7 @@ execute:
 
 This project was inspired by The New York Times *Power Moves* article: [*There's a Race to Power the Future. China is Pulling Away.*](https://www.nytimes.com/interactive/2025/06/30/climate/china-clean-energy-power.html)
 
-## The United States Lags Behind it's Peers
+## The United States lags behind its peers
 
 ```{r}
 # load libraries
@@ -233,7 +232,7 @@ ggplotly(rankplot, tooltip = "label_text") %>%
 ```
 
 
-## Global Positioning {.scrollable}
+## Global positioning {.scrollable}
 ```{r}
 #| label: world-map 
 
@@ -355,7 +354,7 @@ ggplotly(bp, tooltip = "text") %>% layout(
 
 ::: {.panel-tabset}
 
-### Operating Plants
+### Operating plants
 ```{r results = 'hide'}
 #| label: solar-development-comp
 
@@ -456,7 +455,7 @@ subtitle_ <- paste0(
     ))
 ```
 
-### US Investments
+### US investments
 
 ```{r eval = FALSE}
 #| label: create-datasets
@@ -566,7 +565,7 @@ anim_save("chn_status_animated.gif")
 #| dpi: 150
 knitr::include_graphics("us_status_animated.gif")
 ```
-### Chinese Investments
+### Chinese investments
 ```{r}
 #| label: chn-gif
 #| dpi: 150
@@ -617,7 +616,7 @@ iea_pivot %>%
         legend.position = "none"
     )
 ```
-### Widening Gap
+### Widening investment gap
 ```{r}
 # Wrangle data for viz
 renew_slope_chart <- iea_pivot %>%
@@ -738,7 +737,7 @@ renew_slope_chart %>%
 
 In order to keep America great, we need to be looking forward, not back. This means investing in basic science and new techonological development, not relying on our current dominance in fossil fuels. 
 
-Further investigation into China's lead in developing and manufacturing renewable energy technology and the economic and political benefits accrued by exporting these tools should be conducted
+Further investigation into China's lead in developing and manufacturing renewable energy technology and the economic and political benefits accrued by exporting these tools should be conducted.
 
 ## Additional Resources
 
